@@ -1,4 +1,4 @@
-# Copyright 2023 The casbin Authors. All Rights Reserved.
+# Copyright 2024 The casbin Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,15 @@ from typing import List
 from casbin import persist
 from casbin.persist.adapters.asyncio import AsyncAdapter
 from sqlalchemy import Column, Integer, String, delete
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import declarative_base, sessionmaker
+from contextvars import ContextVar
 
 Base = declarative_base()
+
+current_tenant_schema: ContextVar[str] = ContextVar('current_tenant_schema', default='public')
 
 
 class CasbinRule(Base):
@@ -63,7 +66,7 @@ class Filter:
 class Adapter(AsyncAdapter):
     """the interface for Casbin adapters."""
 
-    def __init__(self, engine, db_class=None, filtered=False, warning=True):
+    def __init__(self, engine, schema=None, db_class=None, filtered=False, warning=True):
         if isinstance(engine, str):
             self._engine = create_async_engine(engine, future=True)
         else:
@@ -98,12 +101,15 @@ class Adapter(AsyncAdapter):
         )
 
         self._filtered = filtered
+        self.schema = schema
 
     @asynccontextmanager
     async def _session_scope(self):
         """Provide an asynchronous transactional scope around a series of operations."""
         async with self.session_local() as session:
             try:
+                current_tenant_schema.set(self.schema)
+                await session.execute(text(f"SET search_path TO {current_tenant_schema.get()}"))
                 yield session
                 await session.commit()
             except Exception as e:
