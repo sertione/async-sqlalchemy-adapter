@@ -33,7 +33,7 @@ pip install casbin_async_sqlalchemy_adapter
 from casbin_async_sqlalchemy_adapter import Adapter
 import casbin
 
-engine = create_async_engine(f"postgresql+asyncpg://user:pass@host:5432/db_name")
+engine = create_async_engine("postgresql+asyncpg://user:pass@host:5432/db_name")
 schema_name = 'not_public'
 adapter = Adapter(engine, schema_name)
 
