@@ -30,10 +30,12 @@ pip install casbin_async_sqlalchemy_adapter
 ## Simple Example
 
 ```python
-import casbin_async_sqlalchemy_adapter
+from casbin_async_sqlalchemy_adapter import Adapter
 import casbin
 
-adapter = casbin_async_sqlalchemy_adapter.Adapter('sqlite:///test.db')
+engine = create_async_engine(f"postgresql+asyncpg://user:pass@host:5432/db_name")
+schema_name = 'not_public'
+adapter = Adapter(engine, schema_name)
 
 e = casbin.Enforcer('path/to/model.conf', adapter)
 
